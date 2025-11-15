@@ -3,7 +3,7 @@ import { uploadMediaFiles, uploadJSONFiles } from '../services/api';
 import { Camera, FileJson, CheckCircle, XCircle } from 'lucide-react';
 import Dropzone from './Dropzone';
 import FileProcessor from './FileProcessor';
-
+import {nanoid} from 'nanoid'
 const UploadZone = () => {
   const [mediaFiles, setMediaFiles] = useState([]);
   const [jsonFiles, setJsonFiles] = useState([]);
@@ -16,126 +16,207 @@ const UploadZone = () => {
     setTimeout(() => setNotification(null), 5000);
   };
 
-  const handleMediaDrop = async (acceptedFiles) => {
-    if (acceptedFiles.length === 0) return;
 
-    // Add files to UI immediately
-    const newFiles = acceptedFiles.map(file => ({ 
-      file, 
-      id: Math.random().toString(36).substr(2, 9),
-      status: 'uploading'
-    }));
-    setMediaFiles(prev => [...prev, ...newFiles]);
-    setIsUploading(true);
 
-    try {
-      console.log(`📤 Uploading ${acceptedFiles.length} media files...`);
-      const result = await uploadMediaFiles(acceptedFiles);
+
+  //  this part is responsible for  the notification 
+  
+  // const handleMediaDrop = async (acceptedFiles) => {
+  //   if (acceptedFiles.length === 0) return;
+
+  //   // Add files to UI immediately
+  //   const newFiles = acceptedFiles.map(file => ({ 
+  //     file, 
+  //     id: Math.random().toString(36).substr(2, 9),
+  //     status: 'uploading'
+  //   }));
+  //   setMediaFiles(prev => [...prev, ...newFiles]);
+  //   setIsUploading(true);
+
+  //   try {
+  //     console.log(`📤 Uploading ${acceptedFiles.length} media files...`);
+  //     const result = await uploadMediaFiles(acceptedFiles);
       
-      console.log('✅ Media upload response:', result);
-      showNotification(
-        `Successfully uploaded ${result.count} media file(s)! Processing in background...`,
-        'success'
-      );
+  //     console.log('✅ Media upload response:', result);
+  //     showNotification(
+  //       `Successfully uploaded ${result.count} media file(s)! Categorizing and storing...`,
+  //       'success'
+  //     );
 
-      // Update file status to processing
-      setMediaFiles(prev => 
-        prev.map(f => 
-          newFiles.find(nf => nf.id === f.id) 
-            ? { ...f, status: 'processing' } 
+  //     // Update file status to processing
+  //     setMediaFiles(prev => 
+  //       prev.map(f => 
+  //         newFiles.find(nf => nf.id === f.id) 
+  //           ? { ...f, status: 'processing' } 
+  //           : f
+  //       )
+  //     );
+
+  //     // Simulate processing completion after 6 seconds
+  //     setTimeout(() => {
+  //       setMediaFiles(prev => 
+  //         prev.map(f => 
+  //           newFiles.find(nf => nf.id === f.id)
+  //             ? { ...f, status: 'completed' }
+  //             : f
+  //         )
+  //       );
+  //     }, 6000);
+
+  //   } catch (error) {
+  //     console.error('❌ Media upload failed:', error);
+  //     showNotification(
+  //       `Upload failed: ${error.message}`,
+  //       'error'
+  //     );
+
+  //     // Update file status to failed
+  //     setMediaFiles(prev => 
+  //       prev.map(f => 
+  //         newFiles.find(nf => nf.id === f.id)
+  //           ? { ...f, status: 'failed' }
+  //           : f
+  //       )
+  //     );
+  //   } finally {
+  //     setIsUploading(false);
+  //   }
+  // };
+
+
+   const handleMediaDrop = async (acceptedFiles) => {
+  if (acceptedFiles.length === 0) return;
+
+  const newFiles = acceptedFiles.map(file => ({ 
+    file, 
+    id: Math.random().toString(36).substr(2, 9),
+    status: 'uploading'
+  }));
+
+  setMediaFiles(prev => [...prev, ...newFiles]);
+  setIsUploading(true);
+
+  try {
+    const result = await uploadMediaFiles(acceptedFiles);
+
+    // Remove this notification if you ONLY want completion notification:
+    // showNotification(`Successfully uploaded ... processing`, "success");
+
+    // Update status to processing
+    setMediaFiles(prev =>
+      prev.map(f =>
+        newFiles.some(nf => nf.id === f.id)
+          ? { ...f, status: "processing" }
+          : f
+      )
+    );
+
+    // Simulate backend finish after 6s 
+    setTimeout(() => {
+      setMediaFiles(prev =>
+        prev.map(f =>
+          newFiles.some(nf => nf.id === f.id)
+            ? { ...f, status: "completed" }
             : f
         )
       );
 
-      // Simulate processing completion after 6 seconds
-      setTimeout(() => {
-        setMediaFiles(prev => 
-          prev.map(f => 
-            newFiles.find(nf => nf.id === f.id)
-              ? { ...f, status: 'completed' }
-              : f
-          )
-        );
-      }, 6000);
-
-    } catch (error) {
-      console.error('❌ Media upload failed:', error);
+      // 🎉 Final notification AFTER processing
       showNotification(
-        `Upload failed: ${error.message}`,
-        'error'
+        `Upload complete! ${newFiles.length} file(s) fully processed.`,
+        "success"
       );
 
-      // Update file status to failed
-      setMediaFiles(prev => 
-        prev.map(f => 
-          newFiles.find(nf => nf.id === f.id)
-            ? { ...f, status: 'failed' }
+    }, 6000);
+
+  } catch (error) {
+
+    const message = error.message || "Upload failed";
+
+    showNotification(`Upload failed: ${message}`, "error");
+
+    setMediaFiles(prev =>
+      prev.map(f =>
+        newFiles.some(nf => nf.id === f.id)
+          ? { ...f, status: "failed" }
+          : f
+      )
+    );
+
+  } finally {
+    setIsUploading(false);
+  }
+};
+
+/// this si for the json handle 
+const handleJsonDrop = async (acceptedFiles) => {
+  if (acceptedFiles.length === 0) return;
+
+  const newFiles = acceptedFiles.map(file => ({
+    file,
+    id: Math.random().toString(36).substr(2, 9),
+    status: "uploading"
+  }));
+
+  setJsonFiles(prev => [...prev, ...newFiles]);
+  setIsUploading(true);
+
+  try {
+    console.log(`📤 Uploading ${acceptedFiles.length} JSON file(s)...`);
+    const result = await uploadJSONFiles(acceptedFiles);
+
+    // ❌ Remove this notification
+    // showNotification(`Successfully uploaded ... processing`, 'success');
+
+    // Set status → processing
+    setJsonFiles(prev =>
+      prev.map(f =>
+        newFiles.some(nf => nf.id === f.id)
+          ? { ...f, status: "processing" }
+          : f
+      )
+    );
+
+    // Simulate backend processing completion
+    setTimeout(() => {
+      // Mark completed
+      setJsonFiles(prev =>
+        prev.map(f =>
+          newFiles.some(nf => nf.id === f.id)
+            ? { ...f, status: "completed" }
             : f
         )
       );
-    } finally {
-      setIsUploading(false);
-    }
-  };
 
-  const handleJsonDrop = async (acceptedFiles) => {
-    if (acceptedFiles.length === 0) return;
-
-    const newFiles = acceptedFiles.map(file => ({ 
-      file, 
-      id: Math.random().toString(36).substr(2, 9),
-      status: 'uploading'
-    }));
-    setJsonFiles(prev => [...prev, ...newFiles]);
-    setIsUploading(true);
-
-    try {
-      console.log(`📤 Uploading ${acceptedFiles.length} JSON files...`);
-      const result = await uploadJSONFiles(acceptedFiles);
-      
-      console.log('✅ JSON upload response:', result);
+      // 🎉 Notification ONLY after full processing is done
       showNotification(
-        `Successfully uploaded ${result.count} JSON file(s)! Analyzing schema...`,
-        'success'
+        `JSON processing complete! ${newFiles.length} file(s) analyzed and stored.`,
+        "success"
       );
 
-      // Update file status
-      setJsonFiles(prev => 
-        prev.map(f => 
-          newFiles.find(nf => nf.id === f.id)
-            ? { ...f, status: 'processing' }
-            : f
-        )
-      );
+    }, 4000);
 
-      setTimeout(() => {
-        setJsonFiles(prev => 
-          prev.map(f => 
-            newFiles.find(nf => nf.id === f.id)
-              ? { ...f, status: 'completed' }
-              : f
-          )
-        );
-      }, 4000);
+  } catch (error) {
+    const message =
+      error?.response?.data?.message || error?.message || "Unknown error";
 
-    } catch (error) {
-      console.error('❌ JSON upload failed:', error);
-      showNotification(
-        `Upload failed: ${error.message}`,
-        'error'
-      );
+    console.error("❌ JSON upload failed:", message);
 
-      setJsonFiles(prev => 
-        prev.map(f => 
-          newFiles.find(nf => nf.id === f.id)
-            ? { ...f, status: 'failed' }
-            : f
-        )
-      );
-    } finally {
-      setIsUploading(false);
-    }
-  };
+    showNotification(`Upload failed: ${message}`, "error");
+
+    setJsonFiles(prev =>
+      prev.map(f =>
+        newFiles.some(nf => nf.id === f.id)
+          ? { ...f, status: "failed" }
+          : f
+      )
+    );
+
+  } finally {
+    setIsUploading(false);
+  }
+};
+
 
   // Clear completed files
   const clearCompleted = () => {
@@ -222,7 +303,7 @@ const UploadZone = () => {
           <div className="flex items-center gap-3">
             <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-400"></div>
             <span className="text-purple-300 text-sm">
-              Uploading to backend... Files are being processed by AI.
+              Uploading to backend... Files are being processed.
             </span>
           </div>
         </div>

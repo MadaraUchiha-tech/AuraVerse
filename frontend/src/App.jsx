@@ -17,7 +17,7 @@ function App() {
       <div className="flex-1 flex flex-col overflow-hidden">
         {view === 'Dashboard' ? <MainContent sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} /> : <Analytics />}
       </div>
-      <RightPanel />
+     
     </div>
   );
 }

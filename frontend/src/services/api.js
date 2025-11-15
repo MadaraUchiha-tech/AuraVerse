@@ -98,14 +98,37 @@ export const getUploadedFiles = async (options = {}) => {
 export const getFileById = async (id) => {
   try {
     const response = await fetch(`${API_BASE_URL}/files/${id}`);
-    
+
     if (!response.ok) {
       throw new Error('File not found');
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error('Get file error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete a file by ID
+ * @param {string} id - File ID
+ * @returns {Promise<object>}
+ */
+export const deleteFile = async (id) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/files/${id}`, {
+      method: 'DELETE'
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to delete file');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Delete file error:', error);
     throw error;
   }
 };
@@ -192,6 +215,7 @@ export default {
   uploadJSONFiles,
   getUploadedFiles,
   getFileById,
+  deleteFile,
   getCategories,
   getAnalytics,
   getUploadHistory,

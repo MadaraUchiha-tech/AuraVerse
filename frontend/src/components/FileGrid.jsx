@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getUploadedFiles } from '../services/api';
+import { getUploadedFiles, deleteFile } from '../services/api';
 import { FileJson, Image as ImageIcon, Video, MoreVertical, Download, Trash2, RefreshCw } from 'lucide-react';
 
 // Helper function to optimize Cloudinary URLs
@@ -74,39 +74,20 @@ const FileCard = ({ file, onDelete }) => {
             {formatSize(file.size)} • {formatDate(file.timestamp)}
           </p>
 
-          {/* Tags */}
-          {file.tags && file.tags.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {file.tags.slice(0, 3).map((tag, idx) => (
-                <span 
-                  key={idx} 
-                  className="px-2 py-0.5 text-xs bg-purple-600/30 text-purple-300 rounded-full border border-purple-500/30"
-                >
-                  {tag}
-                </span>
-              ))}
-              {file.tags.length > 3 && (
-                <span className="px-2 py-0.5 text-xs text-gray-400">
-                  +{file.tags.length - 3}
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* Category */}
-          {file.category && (
-            <div className="mt-1 text-xs text-gray-400">
+          {/* Category for media */}
+          {isMedia && file.category && (
+            <div className="mt-2 text-xs text-gray-400">
               📁 {file.category}
             </div>
           )}
 
           {/* Database info for JSON */}
           {isJSON && file.db_type && (
-            <div className="mt-1 text-xs text-blue-400">
+            <div className="mt-2 text-xs text-blue-400">
               🗄️ {file.db_type} • {file.record_count || 0} records
             </div>
           )}
-          
+
           {/* Storage Provider Badge */}
           {file.storage_provider === 'cloudinary' && isMedia && (
             <div className="mt-1 text-xs text-green-400 flex items-center gap-1">
@@ -147,7 +128,7 @@ const FileCard = ({ file, onDelete }) => {
   );
 };
 
-const FileGrid = () => {
+const FileGrid = ({ selectedFolder = 'all' }) => {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -156,7 +137,7 @@ const FileGrid = () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await getUploadedFiles({ limit: 50 });
+      const data = await getUploadedFiles({ limit: 100 });
       console.log('Files fetched:', data);
       setFiles(data.files || []);
     } catch (error) {
@@ -167,28 +148,50 @@ const FileGrid = () => {
     }
   };
 
+  // Filter files based on selected folder
+  const filteredFiles = files.filter(file => {
+    if (selectedFolder === 'all') return true;
+
+    if (selectedFolder === 'images') {
+      return file.type === 'media' && file.category === 'Images';
+    }
+    if (selectedFolder === 'videos') {
+      return file.type === 'media' && file.category === 'Videos';
+    }
+    if (selectedFolder === 'sql') {
+      return file.type === 'json' && file.db_type === 'PostgreSQL';
+    }
+    if (selectedFolder === 'nosql') {
+      return file.type === 'json' && file.db_type === 'MongoDB';
+    }
+
+    return true;
+  });
+
   const handleDelete = async (fileId) => {
     if (!confirm('Are you sure you want to delete this file?')) {
       return;
     }
 
     try {
-      // TODO: Call delete API
-      // await deleteFile(fileId);
-      
-      // Optimistically remove from UI
+      // Call delete API - this will delete from both Cloudinary and Firebase
+      await deleteFile(fileId);
+
+      // Remove from UI after successful deletion
       setFiles(prev => prev.filter(f => f.id !== fileId));
-      
-      console.log('File deleted:', fileId);
+
+      console.log('File deleted successfully:', fileId);
     } catch (error) {
       console.error('Failed to delete file:', error);
       alert('Failed to delete file: ' + error.message);
+      // Refresh to ensure UI is in sync with backend
+      fetchFiles();
     }
   };
 
   useEffect(() => {
     fetchFiles();
-    
+
     // Auto-refresh every 10 seconds
     const interval = setInterval(fetchFiles, 10000);
     return () => clearInterval(interval);
@@ -222,6 +225,17 @@ const FileGrid = () => {
     );
   }
 
+  if (filteredFiles.length === 0 && files.length > 0) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-gray-400 mb-2">No files in this folder</p>
+          <p className="text-gray-500 text-sm">Try selecting a different folder</p>
+        </div>
+      </div>
+    );
+  }
+
   if (files.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -237,7 +251,7 @@ const FileGrid = () => {
     <div>
       <div className="flex justify-between items-center mb-4">
         <p className="text-sm text-gray-400">
-          {files.length} file{files.length !== 1 ? 's' : ''} total
+          {filteredFiles.length} file{filteredFiles.length !== 1 ? 's' : ''} in this folder
         </p>
         <button
           onClick={fetchFiles}
@@ -249,7 +263,7 @@ const FileGrid = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {files.map(file => (
+        {filteredFiles.map(file => (
           <FileCard key={file.id} file={file} onDelete={handleDelete} />
         ))}
       </div>

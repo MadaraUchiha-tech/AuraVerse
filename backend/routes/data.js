@@ -75,29 +75,43 @@ router.delete('/files/:id', async (req, res) => {
   try {
     const db = admin.database();
     const fileRef = db.ref(`uploads/${req.params.id}`);
-    
+
     const snapshot = await fileRef.once('value');
-    
+
     if (!snapshot.exists()) {
       return res.status(404).json({ error: 'File not found' });
     }
-    
+
     const fileData = snapshot.val();
-    
+
     // Delete from Cloudinary if it's a media file
     if (fileData.type === 'media' && fileData.public_id) {
       const { deleteFromCloudinary } = require('../services/cloudinaryManager');
       const resourceType = fileData.mime_type?.startsWith('video/') ? 'video' : 'image';
       await deleteFromCloudinary(fileData.public_id, resourceType);
+      console.log(`🗑️  Deleted from Cloudinary: ${fileData.public_id}`);
     }
-    
+
+    // Delete from database if it's a JSON file
+    if (fileData.type === 'json' && fileData.table_name) {
+      try {
+        const { deleteFromDatabase } = require('../services/databaseManager');
+        await deleteFromDatabase(fileData.db_type, fileData.table_name);
+        console.log(`🗑️  Deleted from ${fileData.db_type}: ${fileData.table_name}`);
+      } catch (dbError) {
+        console.warn(`⚠️  Could not delete from database: ${dbError.message}`);
+        // Continue with Firebase deletion even if database deletion fails
+      }
+    }
+
     // Delete from Firebase database
     await fileRef.remove();
-    
-    res.json({ 
-      success: true, 
+    console.log(`🗑️  Deleted from Firebase: ${req.params.id}`);
+
+    res.json({
+      success: true,
       message: 'File deleted successfully',
-      id: req.params.id 
+      id: req.params.id
     });
   } catch (error) {
     console.error('Error deleting file:', error);

@@ -91,11 +91,11 @@ const Sidebar = ({ view, setView }) => {
       {/* Logo */}
       <div className="flex items-center gap-2 mb-8">
         <div className="w-8 h-8 bg-gradient-to-tr from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
-          <span className="text-white font-bold text-sm">I</span>
+          <span className="text-white font-bold text-sm">C</span>
         </div>
         <div>
-          <h1 className="text-xl font-bold text-white">IMSS</h1>
-          <p className="text-xs text-gray-400">Intelligent Storage</p>
+          <h1 className="text-xl font-bold text-white">Cosmio</h1>
+          <p className="text-xs text-gray-400">intelli-store app</p>
         </div>
       </div>
 
@@ -123,52 +123,7 @@ const Sidebar = ({ view, setView }) => {
           ))}
         </ul>
       </nav>
-
-      {/* Quick Stats */}
-      <div className="mb-8">
-        <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-          Quick Stats
-        </h2>
-        <div className="space-y-2">
-          {statsData.map((stat, index) => (
-            <div 
-              key={index} 
-              className="bg-white/5 hover:bg-white/10 p-3 rounded-md transition-colors border border-white/5"
-            >
-              <p className="text-xs text-gray-400">{stat.name}</p>
-              <p className="text-sm font-semibold text-white mt-0.5">
-                {stat.value}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Recent Activity */}
-      <div>
-        <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-          Recent Activity
-        </h2>
-        <ul className="space-y-3">
-          {recentActivity.map((activity, index) => (
-            <li key={index} className="flex items-start gap-3">
-              <activity.icon className="w-4 h-4 mt-0.5 text-gray-500 flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-gray-300 truncate">{activity.text}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{activity.time}</p>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* Footer */}
-      <div className="mt-4 pt-4 border-t border-white/10">
-        <div className="flex items-center gap-2 text-xs text-gray-500">
-          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-          <span>Live Updates</span>
-        </div>
-      </div>
+     
     </aside>
   );
 };
