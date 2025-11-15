@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getUploadedFiles } from '../services/api';
+import { getUploadedFiles, deleteFile } from '../services/api';
 import { FileJson, Image as ImageIcon, Video, MoreVertical, Download, Trash2, RefreshCw } from 'lucide-react';
 
 // Helper function to optimize Cloudinary URLs
@@ -173,16 +173,18 @@ const FileGrid = () => {
     }
 
     try {
-      // TODO: Call delete API
-      // await deleteFile(fileId);
-      
-      // Optimistically remove from UI
+      // Call delete API - this will delete from both Cloudinary and Firebase
+      await deleteFile(fileId);
+
+      // Remove from UI after successful deletion
       setFiles(prev => prev.filter(f => f.id !== fileId));
-      
-      console.log('File deleted:', fileId);
+
+      console.log('File deleted successfully:', fileId);
     } catch (error) {
       console.error('Failed to delete file:', error);
       alert('Failed to delete file: ' + error.message);
+      // Refresh to ensure UI is in sync with backend
+      fetchFiles();
     }
   };
 

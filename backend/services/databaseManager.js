@@ -42,10 +42,20 @@ function analyzeJSONSchema(data) {
       schema: {}
     };
   }
-  
+
+  // Unwrap if data has a single root array property (e.g., {"orders": [...]})
+  let actualData = data;
+  if (!Array.isArray(data) && typeof data === 'object') {
+    const keys = Object.keys(data);
+    if (keys.length === 1 && Array.isArray(data[keys[0]])) {
+      actualData = data[keys[0]];
+      console.log(`  📦 Unwrapped root array property: "${keys[0]}" (${actualData.length} items)`);
+    }
+  }
+
   // Get the array to analyze
-  const items = Array.isArray(data) ? data : [data];
-  
+  const items = Array.isArray(actualData) ? actualData : [actualData];
+
   if (items.length === 0) {
     return {
       useSQL: true,
@@ -53,26 +63,33 @@ function analyzeJSONSchema(data) {
       schema: {}
     };
   }
-  
+
   // Analyze first item
   const firstItem = items[0];
-  
+
   // Calculate nesting depth
   const depth = calculateDepth(firstItem);
-  
+
   // Check for arrays within objects
   const hasArrays = hasNestedArrays(firstItem);
-  
+
   // Check schema consistency across items
   const isConsistent = checkSchemaConsistency(items);
-  
+
   // Get field types
   const schema = inferSchema(firstItem);
-  
+
+  // Debug logging
+  console.log(`  🔍 Schema Analysis:`);
+  console.log(`     - Depth: ${depth}`);
+  console.log(`     - Has nested arrays: ${hasArrays}`);
+  console.log(`     - Schema consistent: ${isConsistent}`);
+  console.log(`     - Fields: ${Object.keys(schema).join(', ')}`);
+
   // Decision logic
   let useSQL = true;
   let reason = '';
-  
+
   if (depth > 3) {
     useSQL = false;
     reason = `Deep nesting detected (depth: ${depth}) - MongoDB better suited for hierarchical data`;
@@ -83,18 +100,18 @@ function analyzeJSONSchema(data) {
     useSQL = false;
     reason = 'Inconsistent schema across items - MongoDB provides flexibility';
   } else if (depth <= 2 && isConsistent) {
-    useSQL = true;
-    reason = `Flat structure (depth: ${depth}) with consistent schema - PostgreSQL optimal for relational queries`;
+    // Check for relational patterns (foreign keys) only for flat structures
+    const hasRelations = detectRelations(schema);
+    if (hasRelations) {
+      useSQL = true;
+      reason = 'Relational pattern detected (foreign keys) - PostgreSQL better for joins and relationships';
+    } else {
+      useSQL = true;
+      reason = `Flat structure (depth: ${depth}) with consistent schema - PostgreSQL optimal for relational queries`;
+    }
   } else {
     useSQL = false;
     reason = 'Complex structure - MongoDB provides better flexibility';
-  }
-  
-  // Check for relational patterns (foreign keys)
-  const hasRelations = detectRelations(schema);
-  if (hasRelations && isConsistent) {
-    useSQL = true;
-    reason = 'Relational pattern detected (foreign keys) - PostgreSQL better for joins and relationships';
   }
   
   return {
@@ -130,16 +147,18 @@ function hasNestedArrays(obj) {
   if (typeof obj !== 'object' || obj === null) {
     return false;
   }
-  
+
   for (const value of Object.values(obj)) {
     if (Array.isArray(value)) {
       return true;
     }
-    if (typeof value === 'object' && hasNestedArrays(value)) {
-      return true;
+    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      if (hasNestedArrays(value)) {
+        return true;
+      }
     }
   }
-  
+
   return false;
 }
 
@@ -217,8 +236,17 @@ async function storeInPostgreSQL(data, tableName) {
   if (!pgPool) {
     throw new Error('PostgreSQL not configured');
   }
-  
-  const items = Array.isArray(data) ? data : [data];
+
+  // Unwrap if data has a single root array property
+  let actualData = data;
+  if (!Array.isArray(data) && typeof data === 'object') {
+    const keys = Object.keys(data);
+    if (keys.length === 1 && Array.isArray(data[keys[0]])) {
+      actualData = data[keys[0]];
+    }
+  }
+
+  const items = Array.isArray(actualData) ? actualData : [actualData];
   
   if (items.length === 0) {
     return 0;
@@ -299,8 +327,17 @@ async function storeInMongoDB(data, collectionName) {
   if (!mongoDb) {
     throw new Error('MongoDB not configured');
   }
-  
-  const items = Array.isArray(data) ? data : [data];
+
+  // Unwrap if data has a single root array property
+  let actualData = data;
+  if (!Array.isArray(data) && typeof data === 'object') {
+    const keys = Object.keys(data);
+    if (keys.length === 1 && Array.isArray(data[keys[0]])) {
+      actualData = data[keys[0]];
+    }
+  }
+
+  const items = Array.isArray(actualData) ? actualData : [actualData];
   
   if (items.length === 0) {
     return 0;

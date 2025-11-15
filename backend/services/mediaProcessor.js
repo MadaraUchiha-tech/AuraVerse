@@ -108,62 +108,37 @@ async function processMediaFile(file, buffer) {
 
 /**
  * Generate category path from AI tags.
+ * For simple categorization: "Images" or "Videos"
  * Examples:
- * - ["animals", "outdoor", "dog"] -> "Animals/Outdoor"
- * - ["people", "indoor", "meeting"] -> "People/Indoor"
- * - ["nature", "landscape", "mountain"] -> "Nature/Landscape"
+ * - ["images", "media", "image"] -> "Images"
+ * - ["videos", "media", "video"] -> "Videos"
  */
 function generateCategoryPath(tags) {
   if (!tags || tags.length === 0) {
-    return 'Uncategorized/General';
+    return 'Images';
   }
-  
-  // Capitalize first tag as primary category
-  const primary = capitalize(tags[0]);
-  
-  // Use second tag as subcategory, or 'General' if only one tag
-  const secondary = tags.length > 1 ? capitalize(tags[1]) : 'General';
-  
-  return `${primary}/${secondary}`;
+
+  // Check if it's a video
+  if (tags[0] === 'videos' || tags.includes('video')) {
+    return 'Videos';
+  }
+
+  // Default to Images
+  return 'Images';
 }
 
 /**
  * Generate fallback tags when AI service is unavailable.
- * Uses simple heuristics based on filename and mime type.
+ * Simply categorizes as images or videos based on mime type.
  */
 function generateFallbackTags(filename, mimetype) {
-  const tags = [];
-  const lowerFilename = filename.toLowerCase();
-  
-  // Check filename for common keywords
-  const keywords = {
-    'dog': ['animals', 'dog', 'pet'],
-    'cat': ['animals', 'cat', 'pet'],
-    'car': ['vehicles', 'car', 'transportation'],
-    'food': ['food', 'cuisine', 'meal'],
-    'nature': ['nature', 'outdoor', 'landscape'],
-    'city': ['urban', 'city', 'architecture'],
-    'people': ['people', 'portrait', 'person'],
-    'building': ['architecture', 'urban', 'building'],
-    'beach': ['nature', 'beach', 'outdoor'],
-    'mountain': ['nature', 'mountain', 'landscape']
-  };
-  
-  // Find matching keywords
-  for (const [keyword, keywordTags] of Object.entries(keywords)) {
-    if (lowerFilename.includes(keyword)) {
-      return keywordTags;
-    }
+  // Categorize based on mime type
+  if (mimetype.startsWith('video/')) {
+    return ['videos', 'media', 'video'];
   }
-  
-  // Default tags based on mime type
-  if (mimetype.startsWith('image/')) {
-    return ['images', 'photo', 'general'];
-  } else if (mimetype.startsWith('video/')) {
-    return ['videos', 'media', 'general'];
-  }
-  
-  return ['uncategorized', 'general', 'media'];
+
+  // Default to images
+  return ['images', 'media', 'image'];
 }
 
 /**
