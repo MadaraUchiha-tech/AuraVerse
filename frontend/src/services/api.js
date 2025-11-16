@@ -134,6 +134,27 @@ export const deleteFile = async (id) => {
 };
 
 /**
+ * Get JSON file data from database
+ * @param {string} id - File ID
+ * @returns {Promise<object>}
+ */
+export const getJSONFileData = async (id) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/files/${id}/data`);
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to fetch JSON data');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Get JSON data error:', error);
+    throw error;
+  }
+};
+
+/**
  * Get all categories
  * @returns {Promise<object>}
  */
@@ -216,6 +237,7 @@ export default {
   getUploadedFiles,
   getFileById,
   deleteFile,
+  getJSONFileData,
   getCategories,
   getAnalytics,
   getUploadHistory,
